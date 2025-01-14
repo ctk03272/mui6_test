@@ -5,9 +5,9 @@ import App from './App.tsx'
 import BaseLayout from './pages/Layout/BaseLayout.tsx'
 import SkuHideList from './pages/SkuHideList.tsx'
 import SkuHideUnhiddenUpload from './pages/SkuHideUnhiddenUpload.tsx'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, RouterProvider } from 'react-router-dom'
 
-const router = createBrowserRouter([
+const router = createHashRouter([
     {
         Component: App,
         children: [

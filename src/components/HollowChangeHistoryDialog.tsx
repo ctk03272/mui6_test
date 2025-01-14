@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Dialog, DialogContent, DialogTitle } from '@mui/material'
-import { SkuHideList } from '../type/SkuHide.ts'
 import SkuHideDataGrid from './SkuHideDataGrid.tsx'
+import { PageNationModel } from '../type/CommonType.ts'
+import { useQuery } from '@tanstack/react-query'
+import { fetchHideHistoryList } from '../api/inventoryHideApi.ts'
+import { InventoryHide } from '../type/InventoryHide.ts'
+import { mapStringToChipState } from '../type/HollowChipState.ts'
 
 interface ChangeHistoryDialogProps {
     open: boolean
@@ -10,71 +14,65 @@ interface ChangeHistoryDialogProps {
 }
 
 const ChangeHistoryDialog: React.FC<ChangeHistoryDialogProps> = ({ open, onClose, skuId }) => {
-    const [historyData, setHistoryData] = useState<SkuHideList[]>([])
-
+    const [historyData, setHistoryData] = useState<InventoryHide[]>([])
+    const [paginationModel, setPaginationModel] = useState<PageNationModel>({
+        page: 0,
+        pageSize: 20,
+    })
+    const { isLoading, refetch } = useQuery({
+        queryKey: ['searchHideListResponse'],
+        queryFn: () => fetchHideHistoryList(skuId ?? 0),
+        enabled: false,
+    })
     useEffect(() => {
         if (skuId) {
-            // Mock 데이터를 설정
-            const mockData = [
-                {
-                    id: 1,
-                    skuId: 23456,
-                    hiddenCenter: 'DON1',
-                    monitoringCenter: [
-                        'GOY1131313',
-                        'GOY1',
-                        'INC1',
-                        'INC4',
-                        'DON1',
-                        'ECH2',
-                        'GOY1',
-                        'INC1',
-                        'INC4',
-                        'DON1',
-                        'ECH2',
-                        'GOY1',
-                        'INC1',
-                        'INC4',
-                        'DON1',
-                        'ECH2',
-                        'GOY1',
-                        'INC14',
-                        'INC4',
-                    ],
-                    nationalDoc: 1,
-                    minimumInventory: 20,
-                    startDate: '2023-01-01 00:00:00',
-                    endDate: '2023-12-31 00:00:00',
-                    reasons: 'Reason Y(Daegu2)',
-                    registrant: 'User1 + 2023-01-01 00:00:00',
-                    modifier: 'User2 + 2023-06-01 00:00:00',
-                    actions: true,
-                },
-            ]
-            setHistoryData(mockData)
+            refetch().then((history) => {
+                const inventoryHide = history.data?.map((it, index) => {
+                    return {
+                        ...it,
+                        actions: true,
+                        id: index,
+                        registrant: `${it.createdId ?? ''}@${it.createdAt ?? ''}`,
+                        modifier: `${it.modifiedId ?? ''}@${it.modifiedAt ?? ''}`,
+                        hideCenterList: it.hideCenterList?.map((it) => {
+                            return {
+                                ...it,
+                                hideStatus: mapStringToChipState(it.hideStatus),
+                            }
+                        }),
+                    }
+                })
+                if (inventoryHide) {
+                    setHistoryData(inventoryHide)
+                }
+            })
         }
         return () => {
             setHistoryData([])
         }
-    }, [skuId])
+    }, [refetch, skuId])
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
             <DialogTitle>Change History</DialogTitle>
             <DialogContent>
-                <Box sx={{ height: 400 }}>
+                <Box sx={{ height: 700 }}>
                     <SkuHideDataGrid
-                        data={historyData}
+                        data={historyData ?? []}
+                        isLoading={isLoading}
+                        rowCount={historyData?.length ?? 0}
                         selectedKeys={[
                             'id',
                             'skuId',
-                            'hiddenCenter',
-                            'monitoringCenter',
+                            'hideCenterList',
+                            'monitoringCenterCodeList',
                             'nationalDoc',
                             'minimumInventory',
                             'modifier',
-                            'reasons',
+                            'reason',
                         ]}
+                        pageNationModel={paginationModel}
+                        setPageNationModel={setPaginationModel}
                         title={'Change History'}
                     />
                 </Box>

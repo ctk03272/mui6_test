@@ -6,6 +6,7 @@ import { extendTheme } from '@mui/material/styles'
 import { Outlet } from 'react-router-dom'
 import BoltIcon from '@mui/icons-material/Bolt'
 import React from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const navigation: Navigation = [
     {
@@ -67,16 +68,20 @@ function App() {
         }
     }, [])
 
+    const queryClient = new QueryClient()
+
     return (
-        <AppProvider
-            session={session}
-            authentication={authentication}
-            navigation={navigation}
-            theme={hollowTheme}
-            branding={branding}
-        >
-            <Outlet />
-        </AppProvider>
+        <QueryClientProvider client={queryClient}>
+            <AppProvider
+                session={session}
+                authentication={authentication}
+                navigation={navigation}
+                theme={hollowTheme}
+                branding={branding}
+            >
+                <Outlet />
+            </AppProvider>
+        </QueryClientProvider>
     )
 }
 

@@ -1,61 +1,68 @@
-import { useState } from 'react'
-import {
-    Box,
-    Dialog,
-    DialogContent,
-    DialogTitle,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableRow,
-} from '@mui/material'
+import { useEffect, useState } from 'react'
+import { Box } from '@mui/material'
 import SkuHideDataGrid from '../components/SkuHideDataGrid.tsx'
 import HollowSearchBox from '../components/HollowSearchBox.tsx'
+import { InventoryHide } from '../type/InventoryHide.ts'
+import { useQuery } from '@tanstack/react-query'
+import { fetchSearchHideList } from '../api/inventoryHideApi.ts'
+import { PageNationModel } from '../type/CommonType.ts'
+import { mapStringToChipState } from '../type/HollowChipState.ts'
 
 const SkuHideList = () => {
     const [skuId, setSkuId] = useState('')
-    const [hideCenter, setHideCenter] = useState('')
-    const [hideStatus, setHideStatus] = useState('')
-    const [dialogOpen, setDialogOpen] = useState(false)
+    const [hideCenter, setHideCenter] = useState<string[]>([])
+    const [hideStatus, setHideStatus] = useState<string[]>([])
+    const [rowCount, setRowCount] = useState<number>(0)
+    const [rows, setRows] = useState<InventoryHide[]>([])
+    const [paginationModel, setPaginationModel] = useState<PageNationModel>({
+        page: 0,
+        pageSize: 10,
+    })
 
-    const rows = [
-        {
-            id: 1,
-            skuId: 123456,
-            hiddenCenter: 'DON1',
-            monitoringCenter: [
-                'GOY1131313',
-                'GOY1',
-                'INC1',
-                'INC4',
-                'DON1',
-                'ECH2',
-                'GOY1',
-                'INC1',
-                'INC4',
-                'DON1',
-                'ECH2',
-                'GOY1',
-                'INC1',
-                'INC4',
-                'DON1',
-                'ECH2',
-                'GOY1',
-                'INC14',
-                'INC4',
-            ],
-            nationalDoc: 1,
-            minimumInventory: 20,
-            startDate: '2023-01-01 00:00:00',
-            endDate: '2023-12-31 00:00:00',
-            reasons: 'Reason Y(Daegu2)',
-            registrant: 'User1 + 2023-01-01 00:00:00',
-            modifier: 'User2 + 2023-06-01 00:00:00',
-            actions: true,
-        },
-    ]
+    const { isLoading, refetch } = useQuery({
+        queryKey: ['searchHideListResponse'],
+        queryFn: () =>
+            fetchSearchHideList({
+                pageSize: paginationModel.pageSize,
+                pageNumber: paginationModel.page,
+                skuId: skuId.length == 0 ? [] : skuId.split(',').map(Number),
+                centerCode: hideCenter,
+                hideStatusList: hideStatus,
+            }),
+        enabled: false,
+    })
+    const refetchData = () => {
+        refetch().then((result) => {
+            setRowCount(result.data?.totalElements ?? 0)
+            const inventoryHide = result.data?.content.map((it, index) => {
+                return {
+                    ...it,
+                    actions: true,
+                    id: index,
+                    registrant: `${it.createdId ?? ''}@${it.createdAt ?? ''}`,
+                    modifier: `${it.modifiedId ?? ''}@${it.modifiedAt ?? ''}`,
+                    hideCenterList: it.hideCenterList?.map((it) => {
+                        return {
+                            ...it,
+                            hideStatus: mapStringToChipState(it.hideStatus),
+                        }
+                    }),
+                }
+            })
+            if (inventoryHide) {
+                setRows(inventoryHide)
+            }
+        })
+    }
+    const onClickSearchButton = () => {
+        refetchData()
+    }
 
+    useEffect(() => {
+        if (paginationModel.page != 0) {
+            refetchData()
+        }
+    }, [paginationModel])
     return (
         <Box>
             {/* SearchBox Section */}
@@ -66,6 +73,7 @@ const SkuHideList = () => {
                 setSkuId={setSkuId}
                 setHideCenter={setHideCenter}
                 setHideStatus={setHideStatus}
+                onClickSearchButton={onClickSearchButton}
             />
             {/* Result Table */}
             <SkuHideDataGrid
@@ -73,45 +81,28 @@ const SkuHideList = () => {
                 selectedKeys={[
                     'id',
                     'skuId',
-                    'hiddenCenter',
-                    'monitoringCenter',
+                    'hideCenterList',
+                    'monitoringCenterCodeList',
                     'nationalDoc',
                     'minimumInventory',
                     'startDate',
                     'endDate',
                     'registrant',
                     'modifier',
-                    'reasons',
+                    'reason',
                     'actions',
                 ]}
+                rowCount={rowCount}
+                pageNationModel={paginationModel}
+                setPageNationModel={(t) => {
+                    setPaginationModel(t)
+                    console.log(t)
+                    console.log('pageNationModel')
+                }}
                 title={'Result'}
+                isLoading={isLoading}
                 useDownload
             />
-
-            {/* History Dialog */}
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-                <DialogTitle>Change History</DialogTitle>
-                <DialogContent>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Date</TableCell>
-                                <TableCell>Action</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>2023-01-01</TableCell>
-                                <TableCell>Created</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>2023-06-01</TableCell>
-                                <TableCell>Updated</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </DialogContent>
-            </Dialog>
         </Box>
     )
 }

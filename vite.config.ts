@@ -1,12 +1,25 @@
-import {defineConfig} from 'vite'
-import react from '@vitejs/plugin-react-swc'
+import { defineConfig } from 'vite'
 
-// https://vite.dev/config/
 export default defineConfig({
-    plugins: [react()],
     resolve: {
         alias: {
             '@': '/src',
+        },
+    },
+    define: {
+        'process.env': {},
+    },
+    build: {
+        lib: {
+            entry: 'src/main.tsx',
+            name: 'HollowApp',
+            fileName: 'hollow-app',
+            formats: ['iife'],
+        },
+        rollupOptions: {
+            output: {
+                format: 'iife',
+            },
         },
     },
 })

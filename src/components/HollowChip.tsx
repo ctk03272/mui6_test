@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Chip, ChipProps, SxProps, Theme, Tooltip } from '@mui/material'
 import { styled } from '@mui/material/styles'
 import SyncIcon from '@mui/icons-material/Sync'
@@ -59,7 +59,7 @@ export const StatusChip = styled(Chip)<{ state: ChipState }>(({ theme, state }) 
     }
 })
 
-const HollowChip = forwardRef<HTMLDivElement, HollowChipProps>(({ label, state, sx }) => {
+const HollowChip: React.FC<HollowChipProps> = ({ label, state, sx }) => {
     const [isOverflowed, setIsOverflowed] = useState(false)
     const chipRef = useRef<HTMLDivElement | null>(null)
 
@@ -99,12 +99,10 @@ const HollowChip = forwardRef<HTMLDivElement, HollowChipProps>(({ label, state, 
             <StatusChip ref={chipRef} label={label} state={state} icon={icon} sx={sx} />
         </Tooltip>
     )
-})
+}
 
 interface HollowChipProps extends StatusChipProps {
     sx?: SxProps<Theme>
 }
-
-HollowChip.displayName = 'HollowChip'
 
 export default HollowChip

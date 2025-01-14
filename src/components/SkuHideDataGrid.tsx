@@ -4,22 +4,79 @@ import { HOLLOW_CHIP_STATES } from '../type/HollowChipState.ts'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import HollowHtmlTooltip from './HollowHtmlToolTip.tsx'
 import React, { useRef, useState } from 'react'
-import { SkuHideList } from '../type/SkuHide.ts'
+import { InventoryHide, InventoryHideCenter } from '../type/InventoryHide.ts'
 import ChangeHistoryDialog from './HollowChangeHistoryDialog.tsx'
-import ListIcon from '@mui/icons-material/List';
+import ListIcon from '@mui/icons-material/List'
 import DownloadIcon from '@mui/icons-material/Download'
+import { PageNationModel } from '../type/CommonType.ts'
 
-const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = ({
+const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof InventoryHide)[]>> = ({
     selectedKeys,
     data,
+    rowCount,
+    pageNationModel,
+    setPageNationModel,
     title,
     useDownload,
+    isLoading,
 }) => {
     const apiRef = useGridApiRef()
     const chipLabelRef = useRef<HTMLDivElement | null>(null)
     const maxVisibleChips = 10
     const [openDialog, setOpenDialog] = useState<boolean>(false)
     const [selectedSkuId, setSelectedSkuId] = useState<number | null>(null)
+
+    const renderHideCenter = (inventoryHideCenters: InventoryHideCenter[]) => {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: 0,
+                }}
+            >
+                {inventoryHideCenters.slice(0, maxVisibleChips).map((inventoryHideCenters, index) => (
+                    <HollowChip
+                        key={index}
+                        label={inventoryHideCenters.hideCenterCode}
+                        state={inventoryHideCenters.hideStatus}
+                    />
+                ))}
+                {inventoryHideCenters.length > maxVisibleChips && (
+                    <HollowHtmlTooltip
+                        title={
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    alignItems: 'center',
+                                    gap: 0,
+                                }}
+                            >
+                                {inventoryHideCenters.map((inventoryHideCenters, index) => (
+                                    <HollowChip
+                                        key={index}
+                                        label={inventoryHideCenters.hideCenterCode}
+                                        state={inventoryHideCenters.hideStatus}
+                                    />
+                                ))}
+                            </Box>
+                        }
+                        leaveDelay={200}
+                        placement="top"
+                    >
+                        <StatusChip
+                            label={`+${inventoryHideCenters.length - maxVisibleChips}`}
+                            state={HOLLOW_CHIP_STATES.DEFAULT}
+                            ref={chipLabelRef}
+                        />
+                    </HollowHtmlTooltip>
+                )}
+            </Box>
+        )
+    }
+
     const renderMonitoringCenter = (centers: string[]) => {
         return (
             <Box
@@ -63,8 +120,7 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
         )
     }
 
-    const renderActionButtos = (params: GridRenderCellParams<Pick<SkuHideList, keyof SkuHideList>>) => {
-        console.dir(params.row.skuId)
+    const renderActionButtons = (params: GridRenderCellParams<Pick<InventoryHide, keyof InventoryHide>>) => {
         return (
             <Button
                 variant="contained"
@@ -78,21 +134,17 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
         )
     }
 
-    const columns: GridColDef<Pick<SkuHideList, (typeof selectedKeys)[number]>>[] = [
+    const columns: GridColDef<Pick<InventoryHide, (typeof selectedKeys)[number]>>[] = [
         { field: 'skuId', headerName: 'SKU ID', width: 100 },
         {
-            field: 'hiddenCenter',
+            field: 'hideCenterList',
             headerName: 'Hidden Management Center',
             width: 200,
             headerAlign: 'center',
-            renderCell: (params) => (
-                <>
-                    <HollowChip label={params.value} state={HOLLOW_CHIP_STATES.DEFAULT} />
-                </>
-            ),
+            renderCell: (params) => <>{params.value && renderHideCenter(params.value)}</>,
         },
         {
-            field: 'monitoringCenter',
+            field: 'monitoringCenterCodeList',
             headerName: 'Monitoring Center',
             headerAlign: 'center',
             minWidth: 276,
@@ -128,8 +180,8 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
             width: 180,
         },
         {
-            field: 'reasons',
-            headerName: 'Reasons',
+            field: 'reason',
+            headerName: 'Reason',
             headerAlign: 'center',
             align: 'center',
             width: 100,
@@ -154,18 +206,19 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
             headerAlign: 'center',
             align: 'center',
             width: 150,
-            renderCell: (params) => renderActionButtos(params),
+            renderCell: (params) => renderActionButtons(params),
         },
     ]
-    const filteredColumns = columns.filter((col) => selectedKeys.includes(col.field as keyof SkuHideList))
+    const filteredColumns = columns.filter((col) => selectedKeys.includes(col.field as keyof InventoryHide))
     const chipStatusExampleSx = {
         width: 120,
-        height : 20,
+        height: 20,
         maxWidth: 120,
         '& .MuiChip-label': {
             paddingLeft: '12px',
         },
     }
+
     return (
         <div style={{ height: 600 }}>
             {/* 헤더 섹션 및 칩 상태 레전드를 한 줄에 배치 */}
@@ -179,7 +232,7 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
                 }}
             >
                 {/* 아이콘과 타이틀 */}
-                <ListIcon/>
+                <ListIcon />
                 <Typography variant="h6" sx={{ marginRight: '16px' }}>
                     {title}
                 </Typography>
@@ -218,23 +271,46 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
             </Stack>
             <DataGrid
                 rows={data}
+                loading={isLoading}
                 columns={filteredColumns}
-                autoPageSize
+                paginationMode="server"
+                rowCount={rowCount}
+                paginationModel={pageNationModel}
+                pageSizeOptions={[10]}
+                onPaginationModelChange={setPageNationModel}
                 apiRef={apiRef}
                 getRowHeight={(params) => {
                     const chipWidth = 64
                     const chipHeight = 20
+                    const minRowCount = 2
                     const verticalSpacing = 2 * 2
 
-                    const columnField = 'monitoringCenter'
-                    const column = apiRef.current?.getColumn(columnField)
+                    const monitoringColumnField = 'monitoringCenterCodeList'
+                    const monitoringColumn = apiRef.current?.getColumn(monitoringColumnField)
 
-                    const columnWidth = column?.computedWidth ?? chipWidth
-                    const chipsPerRow = Math.floor(columnWidth / chipWidth)
-                    const chipCount = Math.min(params.model.monitoringCenter.length, maxVisibleChips + 1)
-                    const rowCount = Math.ceil(chipCount / chipsPerRow)
+                    const monitoringColumnWidth = monitoringColumn?.computedWidth ?? chipWidth
+                    const monitoringChipsPerRow = Math.floor(monitoringColumnWidth / chipWidth)
+                    const monitoringChipCount = Math.min(
+                        params.model.monitoringCenterCodeList.length,
+                        maxVisibleChips + 1
+                    )
+                    const monitoringRowCount = Math.max(
+                        Math.ceil(monitoringChipCount / monitoringChipsPerRow),
+                        minRowCount
+                    )
 
-                    return rowCount * (chipHeight + verticalSpacing)
+                    const inventoryHideColumnField = 'hideCenterList'
+                    const inventoryHideColumn = apiRef.current?.getColumn(inventoryHideColumnField)
+
+                    const inventoryHideColumnWidth = inventoryHideColumn?.computedWidth ?? chipWidth
+                    const inventoryHideChipsPerRow = Math.floor(inventoryHideColumnWidth / chipWidth)
+                    const inventoryHideChipCount = Math.min(params.model.hideCenterList.length, maxVisibleChips + 1)
+                    const inventoryHideRowCount = Math.max(
+                        Math.ceil(inventoryHideChipCount / inventoryHideChipsPerRow),
+                        minRowCount
+                    )
+
+                    return Math.max(monitoringRowCount, inventoryHideRowCount) * (chipHeight + verticalSpacing)
                 }}
             />
             <ChangeHistoryDialog
@@ -249,11 +325,15 @@ const SkuHideDataGrid: React.FC<SkuHideDataGridProps<(keyof SkuHideList)[]>> = (
     )
 }
 
-interface SkuHideDataGridProps<K extends (keyof SkuHideList)[]> {
+interface SkuHideDataGridProps<K extends (keyof InventoryHide)[]> {
     selectedKeys: K
-    data: Pick<SkuHideList, K[number]>[]
+    data: Pick<InventoryHide, K[number]>[]
+    rowCount: number
+    pageNationModel: PageNationModel
+    setPageNationModel: (pageNationModel: PageNationModel) => void
     title: string
     useDownload?: boolean
+    isLoading?: boolean
 }
 
 export default SkuHideDataGrid
